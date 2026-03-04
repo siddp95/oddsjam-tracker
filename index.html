@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OddsJam Bet Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --bg2: #13161b;
+    --bg3: #1a1e25;
+    --border: #252a33;
+    --border2: #2e3440;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --accent: #22d3ee;
+    --accent2: #0891b2;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --purple: #a78bfa;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    background: var(--bg2);
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--muted); font-weight: 400; }
+
+  #file-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  #file-status.loaded { color: var(--green); }
+
+  /* UPLOAD OVERLAY */
+  #upload-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .upload-box {
+    border: 1px dashed var(--border2);
+    background: var(--bg2);
+    padding: 60px 80px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+
+  .upload-box:hover, .upload-box.drag-over {
+    border-color: var(--accent);
+    background: #0e1820;
+  }
+
+  .upload-box input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    font-size: 40px;
+    margin-bottom: 20px;
+    opacity: 0.4;
+  }
+
+  .upload-title {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .upload-sub {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* TABS */
+  #app { display: none; }
+
+  nav {
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 0 28px;
+    display: flex;
+    gap: 0;
+    align-items: flex-end;
+  }
+
+  .tab-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 14px 18px 12px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN */
+  main { padding: 24px 28px; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* METRICS ROW */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .metric {
+    background: var(--bg2);
+    padding: 16px 20px;
+  }
+
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .metric-value.pos { color: var(--green); }
+  .metric-value.neg { color: var(--red); }
+
+  /* FILTERS */
+  .filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filter-group label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  select, input[type="date"], input[type="text"] {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  select:focus, input:focus { border-color: var(--accent2); }
+
+  select { cursor: pointer; }
+
+  .filter-sep {
+    width: 1px;
+    height: 24px;
+    background: var(--border2);
+    margin: 0 4px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .btn:hover { background: var(--bg2); border-color: var(--accent2); color: var(--accent); }
+
+  .btn-primary {
+    background: var(--accent2);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 600;
+  }
+
+  .btn-primary:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .btn-sm { padding: 5px 10px; font-size: 10px; }
+
+  /* TABLE */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+
+  .result-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  thead th {
+    background: var(--bg3);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border2);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  thead th:hover { color: var(--text); }
+  thead th.sort-asc::after { content: ' ↑'; color: var(--accent); }
+  thead th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:hover { background: var(--bg3); }
+
+  td {
+    padding: 9px 12px;
+    color: var(--text);
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  td.mono { font-family: var(--mono); font-size: 11px; }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .badge-won { background: #14532d; color: var(--green); }
+  .badge-lost { background: #450a0a; color: #f87171; }
+  .badge-pending { background: #1c1917; color: var(--yellow); }
+  .badge-refunded { background: #1e1b4b; color: var(--purple); }
+
+  .badge-type {
+    background: var(--bg3);
+    color: var(--muted);
+    border: 1px solid var(--border2);
+  }
+
+  .profit-pos { font-family: var(--mono); color: var(--green); }
+  .profit-neg { font-family: var(--mono); color: var(--red); }
+  .profit-zero { font-family: var(--mono); color: var(--muted); }
+
+  /* PAGINATION */
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .page-info { margin: 0 8px; }
+
+  /* EXPORT TAB */
+  .export-panel {
+    max-width: 600px;
+  }
+
+  .export-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .export-section h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .export-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .form-row label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .form-row select, .form-row input {
+    width: 100%;
+  }
+
+  .export-preview {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    padding: 10px 14px;
+    background: #0a1520;
+    border: 1px solid var(--border2);
+    margin-bottom: 16px;
+  }
+
+  /* Upload new file button */
+  #reload-btn {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 5px 12px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  #reload-btn:hover { color: var(--text); border-color: var(--text); }
+
+  .empty-state {
+    padding: 60px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- UPLOAD SCREEN -->
+<div id="upload-screen">
+  <div style="text-align:center; margin-bottom: 32px;">
+    <div style="font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px;">OddsJam Tracker</div>
+    <div style="font-size: 13px; color: var(--muted);">Personal bet analysis dashboard</div>
+  </div>
+  <div class="upload-box" id="drop-zone">
+    <input type="file" accept=".csv" id="file-input">
+    <div class="upload-icon">⬆</div>
+    <div class="upload-title">Drop your CSV here</div>
+    <div class="upload-sub">Or click to browse — OddsJam Bet Tracker export</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="logo">OddsJam<span> / Bet Tracker</span></div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div id="file-status">No file loaded</div>
+      <button id="reload-btn" onclick="resetApp()">↩ Load New File</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+    <button class="tab-btn" onclick="switchTab('bet-type')">By Bet Type</button>
+    <button class="tab-btn" onclick="switchTab('by-tag')">By Tag</button>
+    <button class="tab-btn" onclick="switchTab('export')">Export</button>
+  </nav>
+
+  <main>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="metrics" id="ov-metrics"></div>
+      <div class="filters">
+        <div class="filter-group">
+          <label>From</label>
+          <input type="date" id="ov-date-from" oninput="renderOverview()">
+        </div>
+        <div class="filter-group">
+          <label>To</label>
+          <input type="date" id="ov-date-to" oninput="renderOverview()">
+        </div>
+        <div class="filter-sep"></div>
+        <div class="filter-group">
+          <label>Sport</label>
+          <select id="ov-sport" onchange="renderOverview()"><option value="">All</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Sportsbook</label>
+          <select id="ov-book" onchange="renderOverview()"><option value="">All</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="ov-status" onchange="renderOverview()">
+            <option value="">All</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+            <option value="pending">Pending</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Search</label>
+          <input type="text" id="ov-search" placeholder="event, bet name…" style="width:200px" oninput="renderOverview()">
+        </div>
+        <button class="btn btn-sm" onclick="clearFilters('ov')">Clear</button>
+      </div>
+      <div class="result-count" id="ov-count"></div>
+      <div class="table-wrap">
+        <table id="ov-table">
+          <thead id="ov-thead"></thead>
+          <tbody id="ov-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="ov-pagination"></div>
+    </div>
+
+    <!-- BET TYPE TAB -->
+    <div class="tab-panel" id="tab-bet-type">
+      <div class="metrics" id="bt-metrics"></div>
+      <div class="filters">
+        <div class="filter-group">
+          <label>Bet Type</label>
+          <select id="bt-type" onchange="renderBetType()">
+            <option value="">All</option>
+            <option value="arbitrage">Arbitrage</option>
+            <option value="sharp_money">Sharp Money</option>
+            <option value="positive_ev">Positive EV</option>
+            <option value="middle">Middle</option>
+            <option value="low_hold">Low Hold</option>
+            <option value="profit_boost">Profit Boost</option>
+            <option value="normal">Normal</option>
+            <option value="free_bet">Free Bet</option>
+            <option value="no_sweat_bet">No Sweat Bet</option>
+          </select>
+        </div>
+        <div class="filter-sep"></div>
+        <div class="filter-group">
+          <label>From</label>
+          <input type="date" id="bt-date-from" oninput="renderBetType()">
+        </div>
+        <div class="filter-group">
+          <label>To</label>
+          <input type="date" id="bt-date-to" oninput="renderBetType()">
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="bt-status" onchange="renderBetType()">
+            <option value="">All</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+            <option value="pending">Pending</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Sport</label>
+          <select id="bt-sport" onchange="renderBetType()"><option value="">All</option></select>
+        </div>
+        <button class="btn btn-sm" onclick="clearFilters('bt')">Clear</button>
+      </div>
+      <div class="result-count" id="bt-count"></div>
+      <div class="table-wrap">
+        <table id="bt-table">
+          <thead id="bt-thead"></thead>
+          <tbody id="bt-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="bt-pagination"></div>
+    </div>
+
+    <!-- BY TAG TAB -->
+    <div class="tab-panel" id="tab-by-tag">
+      <div class="metrics" id="tg-metrics"></div>
+      <div class="filters">
+        <div class="filter-group">
+          <label>Tag</label>
+          <select id="tg-tag" onchange="renderByTag()"><option value="">All Tagged</option></select>
+        </div>
+        <div class="filter-sep"></div>
+        <div class="filter-group">
+          <label>From</label>
+          <input type="date" id="tg-date-from" oninput="renderByTag()">
+        </div>
+        <div class="filter-group">
+          <label>To</label>
+          <input type="date" id="tg-date-to" oninput="renderByTag()">
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="tg-status" onchange="renderByTag()">
+            <option value="">All</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+            <option value="pending">Pending</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Bet Type</label>
+          <select id="tg-bet-type" onchange="renderByTag()">
+            <option value="">All</option>
+            <option value="arbitrage">Arbitrage</option>
+            <option value="sharp_money">Sharp Money</option>
+            <option value="positive_ev">Positive EV</option>
+            <option value="middle">Middle</option>
+            <option value="low_hold">Low Hold</option>
+            <option value="profit_boost">Profit Boost</option>
+            <option value="normal">Normal</option>
+            <option value="free_bet">Free Bet</option>
+            <option value="no_sweat_bet">No Sweat Bet</option>
+          </select>
+        </div>
+        <button class="btn btn-sm" onclick="clearFilters('tg')">Clear</button>
+      </div>
+      <div class="result-count" id="tg-count"></div>
+      <div class="table-wrap">
+        <table id="tg-table">
+          <thead id="tg-thead"></thead>
+          <tbody id="tg-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="tg-pagination"></div>
+    </div>
+
+    <!-- EXPORT TAB -->
+    <div class="tab-panel" id="tab-export">
+      <div class="export-panel">
+        <div class="export-section">
+          <h3>Filter & Export to CSV</h3>
+          <div class="export-grid">
+            <div class="form-row">
+              <label>Bet Type</label>
+              <select id="ex-type">
+                <option value="">All</option>
+                <option value="arbitrage">Arbitrage</option>
+                <option value="sharp_money">Sharp Money</option>
+                <option value="positive_ev">Positive EV</option>
+                <option value="middle">Middle</option>
+                <option value="low_hold">Low Hold</option>
+                <option value="profit_boost">Profit Boost</option>
+                <option value="normal">Normal</option>
+                <option value="free_bet">Free Bet</option>
+                <option value="no_sweat_bet">No Sweat Bet</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Tag</label>
+              <select id="ex-tag"><option value="">All</option></select>
+            </div>
+            <div class="form-row">
+              <label>Status</label>
+              <select id="ex-status">
+                <option value="">All</option>
+                <option value="won">Won</option>
+                <option value="lost">Lost</option>
+                <option value="pending">Pending</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Sport</label>
+              <select id="ex-sport"><option value="">All</option></select>
+            </div>
+            <div class="form-row">
+              <label>From Date</label>
+              <input type="date" id="ex-date-from">
+            </div>
+            <div class="form-row">
+              <label>To Date</label>
+              <input type="date" id="ex-date-to">
+            </div>
+          </div>
+        </div>
+        <div class="export-preview" id="ex-preview">— Select filters to preview row count —</div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn" onclick="updateExportPreview()">Preview Count</button>
+          <button class="btn btn-primary" onclick="doExport()">↓ Export CSV</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── DATE CONVERSION ─────────────────────────────────────────────────────────
+// OddsJam exports timestamps in Pacific Time (PST = UTC-8).
+// This converts them to Eastern Time and formats as MM/DD/YYYY, HH:MM EST.
+function convertDate(dateStr) {
+  if (!dateStr || !dateStr.trim()) return dateStr;
+  // Parse treating the string as PST (UTC-8)
+  const dt = new Date(dateStr.trim().replace(' ', 'T') + '-08:00');
+  if (isNaN(dt.getTime())) return dateStr;
+  // Format in Eastern Time
+  const estStr = dt.toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  return estStr + ' EST';
+}
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+let allData = [];
+let sortState = {};
+const PAGE_SIZE = 100;
+let pages = { ov: 1, bt: 1, tg: 1 };
+
+const DISPLAY_COLS = [
+  'event_start_date', 'sportsbook', 'sport', 'league', 'event_name',
+  'market_name', 'bet_name', 'odds', 'clv',
+  'stake', 'status', 'bet_type', 'bet_profit', 'notes',
+  'is_live_bet', 'liquidity', 'tags'
+];
+
+const COL_LABELS = {
+  created_at: 'Created', sportsbook: 'Book', sport: 'Sport', league: 'League',
+  event_name: 'Event', event_start_date: 'Start', market_name: 'Market',
+  bet_name: 'Bet', odds: 'Odds', clv: 'CLV', stake: 'Stake',
+  status: 'Status', bet_type: 'Type', bet_profit: 'Profit',
+  notes: 'Notes', is_live_bet: 'Live', liquidity: 'Liquidity', tags: 'Tags'
+};
+
+// ─── CSV PARSE ────────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const headers = parseCSVLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = parseCSVLine(line);
+    const row = {};
+    headers.forEach((h, i) => row[h.trim()] = (vals[i] || '').trim());
+    return row;
+  }).filter(r => r.created_at);
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuote = !inQuote; }
+    else if (ch === ',' && !inQuote) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ─── FILE LOAD ────────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  loadFile(file);
+});
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    allData = parseCSV(e.target.result);
+    allData.forEach(r => {
+      // Compute _date and _event_start_sort from raw values BEFORE conversion
+      r._date = r.event_start_date ? r.event_start_date.substring(0, 10) : '';
+      r._event_start_sort = r.event_start_date || ''; // raw YYYY-MM-DD HH:MM:SS, sorts correctly as string
+      r._profit = parseFloat(r.bet_profit) || 0;
+      r._stake = parseFloat(r.stake) || 0;
+      // Convert timestamps to Eastern Time display format
+      r.created_at = convertDate(r.created_at);
+      r.event_start_date = convertDate(r.event_start_date);
+    });
+    document.getElementById('upload-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    const fileStatus = document.getElementById('file-status');
+    fileStatus.textContent = `✓ ${file.name} — ${allData.length.toLocaleString()} bets loaded`;
+    fileStatus.className = 'loaded';
+    initFilters();
+    renderOverview();
+    renderBetType();
+    renderByTag();
+  };
+  reader.readAsText(file);
+}
+
+function resetApp() {
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  allData = [];
+}
+
+// ─── INIT FILTERS ────────────────────────────────────────────────────────────
+function initFilters() {
+  const sports = [...new Set(allData.map(r => r.sport).filter(Boolean))].sort();
+  const books = [...new Set(allData.map(r => r.sportsbook).filter(Boolean))].sort();
+  const tags = [...new Set(allData.flatMap(r => r.tags ? r.tags.split(',').map(t => t.trim()) : []).filter(Boolean))].sort();
+
+  ['ov-sport', 'bt-sport', 'ex-sport'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">All</option>';
+    sports.forEach(s => el.innerHTML += `<option value="${s}">${s}</option>`);
+  });
+
+  const bookEl = document.getElementById('ov-book');
+  bookEl.innerHTML = '<option value="">All</option>';
+  books.forEach(b => bookEl.innerHTML += `<option value="${b}">${b}</option>`);
+
+  ['tg-tag', 'ex-tag'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">All Tagged</option>';
+    tags.forEach(t => el.innerHTML += `<option value="${t}">${t}</option>`);
+  });
+
+  // Set default date range
+  const dates = allData.map(r => r._date).filter(Boolean).sort();
+  if (dates.length) {
+    const min = dates[0], max = dates[dates.length - 1];
+    ['ov-date-from', 'bt-date-from', 'tg-date-from', 'ex-date-from'].forEach(id => document.getElementById(id).value = min);
+    ['ov-date-to', 'bt-date-to', 'tg-date-to', 'ex-date-to'].forEach(id => document.getElementById(id).value = max);
+  }
+}
+
+// ─── FILTERING ────────────────────────────────────────────────────────────────
+function filterData(opts) {
+  return allData.filter(r => {
+    if (opts.dateFrom && r._date < opts.dateFrom) return false;
+    if (opts.dateTo && r._date > opts.dateTo) return false;
+    if (opts.sport && r.sport !== opts.sport) return false;
+    if (opts.book && r.sportsbook !== opts.book) return false;
+    if (opts.status && r.status !== opts.status) return false;
+    if (opts.betType && r.bet_type !== opts.betType) return false;
+    if (opts.tag) {
+      const rowTags = r.tags ? r.tags.split(',').map(t => t.trim()) : [];
+      if (!rowTags.includes(opts.tag)) return false;
+    }
+    if (opts.tagOnly && (!r.tags || !r.tags.trim())) return false;
+    if (opts.search) {
+      const q = opts.search.toLowerCase();
+      if (!(r.event_name || '').toLowerCase().includes(q) &&
+          !(r.bet_name || '').toLowerCase().includes(q) &&
+          !(r.sportsbook || '').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function g(id) { return document.getElementById(id).value; }
+
+// ─── METRICS ─────────────────────────────────────────────────────────────────
+function calcMetrics(rows) {
+  const settled = rows.filter(r => r.status === 'won' || r.status === 'lost');
+  const totalStake = settled.reduce((s, r) => s + r._stake, 0);
+  const totalProfit = settled.reduce((s, r) => s + r._profit, 0);
+  const roi = totalStake > 0 ? (totalProfit / totalStake) * 100 : 0;
+  return { count: rows.length, stake: totalStake, profit: totalProfit, roi };
+}
+
+function renderMetrics(containerId, rows) {
+  const m = calcMetrics(rows);
+  const profitClass = m.profit > 0 ? 'pos' : m.profit < 0 ? 'neg' : '';
+  const roiClass = m.roi > 0 ? 'pos' : m.roi < 0 ? 'neg' : '';
+  document.getElementById(containerId).innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Total Bets</div>
+      <div class="metric-value">${m.count.toLocaleString()}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total Staked</div>
+      <div class="metric-value">$${m.stake.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total Profit</div>
+      <div class="metric-value ${profitClass}">${m.profit >= 0 ? '+' : ''}$${m.profit.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">ROI</div>
+      <div class="metric-value ${roiClass}">${m.roi >= 0 ? '+' : ''}${m.roi.toFixed(2)}%</div>
+    </div>`;
+}
+
+// ─── TABLE RENDER ─────────────────────────────────────────────────────────────
+function renderTable(rows, theadId, tbodyId, sortKey, paginationId, prefix) {
+  const thead = document.getElementById(theadId);
+  const tbody = document.getElementById(tbodyId);
+  const pg = pages[prefix] || 1;
+
+  // Sort
+  if (sortKey) {
+    const dir = sortState[prefix + '_dir'] || 'desc';
+    // Use raw timestamp for date columns so chronological order is correct
+    const isDateCol = sortKey === 'event_start_date';
+    const sortField = isDateCol ? '_event_start_sort' : sortKey;
+    rows = [...rows].sort((a, b) => {
+      let av = a[sortField], bv = b[sortField];
+      // Skip numeric coercion for date fields — YYYY-MM-DD HH:MM:SS sorts correctly as a string
+      if (!isDateCol) {
+        const n = parseFloat(av), m = parseFloat(bv);
+        if (!isNaN(n) && !isNaN(m)) { av = n; bv = m; }
+      }
+      if (av < bv) return dir === 'asc' ? -1 : 1;
+      if (av > bv) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  // Header
+  const curSort = sortState[prefix + '_col'];
+  thead.innerHTML = '<tr>' + DISPLAY_COLS.map(col => {
+    let cls = '';
+    if (curSort === col) cls = sortState[prefix + '_dir'] === 'asc' ? 'sort-asc' : 'sort-desc';
+    return `<th class="${cls}" onclick="sortTable('${prefix}','${col}')">${COL_LABELS[col]}</th>`;
+  }).join('') + '</tr>';
+
+  // Paginate
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const start = (pg - 1) * PAGE_SIZE;
+  const pageRows = rows.slice(start, start + PAGE_SIZE);
+
+  // Body
+  tbody.innerHTML = pageRows.length === 0
+    ? `<tr><td colspan="${DISPLAY_COLS.length}" style="text-align:center;padding:40px;color:var(--muted);font-family:var(--mono)">No bets match the current filters</td></tr>`
+    : pageRows.map(r => '<tr>' + DISPLAY_COLS.map(col => {
+        let val = r[col] || '';
+        if (col === 'status') return `<td><span class="badge badge-${val}">${val}</span></td>`;
+        if (col === 'bet_type') return `<td><span class="badge badge-type">${val.replace(/_/g,' ')}</span></td>`;
+        if (col === 'bet_profit') {
+          const n = parseFloat(val);
+          const cls = n > 0 ? 'profit-pos' : n < 0 ? 'profit-neg' : 'profit-zero';
+          const fmt = !isNaN(n) ? (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2) : val;
+          return `<td class="${cls}">${fmt}</td>`;
+        }
+        if (col === 'odds') { const n = parseFloat(val); return `<td class="mono">${!isNaN(n) ? Math.round(n) : val}</td>`; }
+        if (col === 'liquidity') { const n = parseFloat(val); return `<td class="mono">${!isNaN(n) ? Math.round(n) : val}</td>`; }
+        if (col === 'stake') { const n = parseFloat(val); return `<td class="mono">${!isNaN(n) ? '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : val}</td>`; }
+        if (col === 'clv') return `<td class="mono">${val}</td>`;
+        if (col === 'created_at' || col === 'event_start_date') return `<td class="mono">${val}</td>`;
+        if (col === 'is_live_bet') return `<td style="color:${val==='True'?'var(--accent)':'var(--muted)'}; font-family:var(--mono)">${val}</td>`;
+        return `<td title="${val}">${val}</td>`;
+      }).join('') + '</tr>').join('');
+
+  // Pagination
+  const pgEl = document.getElementById(paginationId);
+  pgEl.innerHTML = `
+    <button class="btn btn-sm" onclick="goPage('${prefix}',${pg-1})" ${pg<=1?'disabled':''}>← Prev</button>
+    <span class="page-info">Page ${pg} / ${totalPages}</span>
+    <button class="btn btn-sm" onclick="goPage('${prefix}',${pg+1})" ${pg>=totalPages?'disabled':''}>Next →</button>
+    <span style="margin-left:8px">${total.toLocaleString()} rows</span>`;
+}
+
+function sortTable(prefix, col) {
+  const cur = sortState[prefix + '_col'];
+  if (cur === col) {
+    sortState[prefix + '_dir'] = sortState[prefix + '_dir'] === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortState[prefix + '_col'] = col;
+    sortState[prefix + '_dir'] = 'desc';
+  }
+  pages[prefix] = 1;
+  if (prefix === 'ov') renderOverview();
+  if (prefix === 'bt') renderBetType();
+  if (prefix === 'tg') renderByTag();
+}
+
+function goPage(prefix, pg) {
+  pages[prefix] = pg;
+  if (prefix === 'ov') renderOverview();
+  if (prefix === 'bt') renderBetType();
+  if (prefix === 'tg') renderByTag();
+}
+
+// ─── RENDER TABS ──────────────────────────────────────────────────────────────
+function renderOverview() {
+  const rows = filterData({
+    dateFrom: g('ov-date-from'), dateTo: g('ov-date-to'),
+    sport: g('ov-sport'), book: g('ov-book'),
+    status: g('ov-status'), search: g('ov-search')
+  });
+  renderMetrics('ov-metrics', rows);
+  document.getElementById('ov-count').textContent = `${rows.length.toLocaleString()} bets`;
+  renderTable(rows, 'ov-thead', 'ov-tbody', sortState['ov_col'], 'ov-pagination', 'ov');
+}
+
+function renderBetType() {
+  const rows = filterData({
+    dateFrom: g('bt-date-from'), dateTo: g('bt-date-to'),
+    sport: g('bt-sport'), status: g('bt-status'), betType: g('bt-type')
+  });
+  renderMetrics('bt-metrics', rows);
+  document.getElementById('bt-count').textContent = `${rows.length.toLocaleString()} bets`;
+  renderTable(rows, 'bt-thead', 'bt-tbody', sortState['bt_col'], 'bt-pagination', 'bt');
+}
+
+function renderByTag() {
+  const rows = filterData({
+    dateFrom: g('tg-date-from'), dateTo: g('tg-date-to'),
+    status: g('tg-status'), betType: g('tg-bet-type'),
+    tag: g('tg-tag'), tagOnly: !g('tg-tag')
+  });
+  renderMetrics('tg-metrics', rows);
+  document.getElementById('tg-count').textContent = `${rows.length.toLocaleString()} bets`;
+  renderTable(rows, 'tg-thead', 'tg-tbody', sortState['tg_col'], 'tg-pagination', 'tg');
+}
+
+// ─── CLEAR FILTERS ────────────────────────────────────────────────────────────
+function clearFilters(prefix) {
+  const dates = allData.map(r => r._date).filter(Boolean).sort();
+  const min = dates[0] || '', max = dates[dates.length-1] || '';
+  const map = {
+    ov: ['ov-date-from','ov-date-to','ov-sport','ov-book','ov-status','ov-search'],
+    bt: ['bt-date-from','bt-date-to','bt-sport','bt-status','bt-type'],
+    tg: ['tg-date-from','tg-date-to','tg-status','tg-bet-type','tg-tag']
+  };
+  map[prefix].forEach(id => {
+    const el = document.getElementById(id);
+    if (id.includes('from')) el.value = min;
+    else if (id.includes('to')) el.value = max;
+    else el.value = '';
+  });
+  pages[prefix] = 1;
+  if (prefix === 'ov') renderOverview();
+  if (prefix === 'bt') renderBetType();
+  if (prefix === 'tg') renderByTag();
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function getExportRows() {
+  return filterData({
+    dateFrom: g('ex-date-from'), dateTo: g('ex-date-to'),
+    sport: g('ex-sport'), status: g('ex-status'),
+    betType: g('ex-type'), tag: g('ex-tag')
+  });
+}
+
+function updateExportPreview() {
+  const rows = getExportRows();
+  document.getElementById('ex-preview').textContent =
+    `→ ${rows.length.toLocaleString()} bets match current filters`;
+}
+
+function doExport() {
+  const rows = getExportRows();
+  if (!rows.length) { alert('No bets match the current filters.'); return; }
+
+  const headers = DISPLAY_COLS;
+  const lines = [headers.join(',')];
+  rows.forEach(r => {
+    lines.push(headers.map(h => {
+      const v = (r[h] || '').toString();
+      return v.includes(',') || v.includes('"') ? `"${v.replace(/"/g,'""')}"` : v;
+    }).join(','));
+  });
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().substring(0, 10);
+  const type = g('ex-type') || 'all';
+  const tag = g('ex-tag') ? `_${g('ex-tag').replace(/\s/g,'_')}` : '';
+  a.download = `oddsjam_${type}${tag}_${ts}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('ex-preview').textContent =
+    `✓ Exported ${rows.length.toLocaleString()} bets`;
+}
+
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    const names = ['overview','bet-type','by-tag','export'];
+    b.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + name);
+  });
+}
+</script>
+</body>
+</html>
